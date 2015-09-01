@@ -23,10 +23,11 @@ public class ChatBubble extends View {
 
     private final int dp5, dp7, dp18, dp20, dp35, dp70, dp80;
     private String message, sender;
+    private boolean isUser;
+    private int bubbleColor, textColor;
     private Paint bubblePaint;
     private float bubbleWidth, textWidth, scale;
-    private int bubbleColor, textColor, deviceWidth;
-    private boolean isUser;
+    private int deviceWidth;
     private RectF bubble;
     private DynamicLayout dynamicLayout;
     private TextPaint textPaint;
@@ -64,7 +65,11 @@ public class ChatBubble extends View {
         textPaint.setColor(textColor);
         textPaint.setTextSize(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, 16.0f, display));
 
+        if (message == null)
+            message = "";
+
         float measuredWidth = textPaint.measureText(message);
+
         if (isUser)
             if (measuredWidth < deviceWidth - dp70)
                 textWidth = measuredWidth;
@@ -86,15 +91,31 @@ public class ChatBubble extends View {
 
         // Added 20dp to "textWidth" to allow for a 10dp padding on either side of the text
         if (isUser) {
-            bubbleWidth = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_PX, getLongestLineWidth() + dp35, display);
-            bubble = new RectF(dp20, 0.0f, TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_PX, bubbleWidth,
-                    display), TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_PX, dynamicLayout.getHeight() + dp20,
-                    display));
+            if (message.equals("")) {
+                bubbleWidth = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_PX, 100.0f, display);
+                bubble = new RectF(dp20, 0.0f, TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_PX, bubbleWidth,
+                        display), TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_PX, dynamicLayout.getHeight() +
+                        dp20, display));
+            } else {
+                bubbleWidth = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_PX, getLongestLineWidth() + dp35,
+                        display);
+                bubble = new RectF(dp20, 0.0f, TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_PX, bubbleWidth,
+                        display), TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_PX, dynamicLayout.getHeight() +
+                        dp20, display));
+            }
         } else {
-            bubbleWidth = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_PX, getLongestLineWidth() + dp20, display);
-            bubble = new RectF(0.0f, 0.0f, TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_PX, bubbleWidth,
-                    display), TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_PX, dynamicLayout.getHeight() + dp20,
-                    display));
+            if (message.equals("")) {
+                bubbleWidth = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_PX, 100.0f, display);
+                bubble = new RectF(0.0f, 0.0f, TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_PX, bubbleWidth,
+                        display), TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_PX, dynamicLayout.getHeight() + dp20,
+                        display));
+            } else {
+                bubbleWidth = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_PX, getLongestLineWidth() + dp20,
+                        display);
+                bubble = new RectF(0.0f, 0.0f, TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_PX, bubbleWidth,
+                        display), TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_PX, dynamicLayout.getHeight() +
+                        dp20, display));
+            }
         }
     }
 
@@ -226,6 +247,33 @@ public class ChatBubble extends View {
 
     public void setSender(String sender) {
         this.sender = sender;
+        requestLayout();
+    }
+
+    public int getBubbleColor() {
+        return bubbleColor;
+    }
+
+    public void setBubbleColor(int bubbleColor) {
+        this.bubbleColor = bubbleColor;
+        requestLayout();
+    }
+
+    public int getTextColor() {
+        return textColor;
+    }
+
+    public void setTextColor(int textColor) {
+        this.textColor = textColor;
+        requestLayout();
+    }
+
+    public boolean isUser() {
+        return isUser;
+    }
+
+    public void setUserBoolean(boolean isUser) {
+        this.isUser = isUser;
         requestLayout();
     }
 
