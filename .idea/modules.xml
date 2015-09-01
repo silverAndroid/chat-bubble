@@ -3,7 +3,6 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/ChatBubble.iml" filepath="$PROJECT_DIR$/ChatBubble.iml" />
-      <module fileurl="file://$PROJECT_DIR$/ChatBubble2.iml" filepath="$PROJECT_DIR$/ChatBubble2.iml" />
       <module fileurl="file://$PROJECT_DIR$/chatbubble/chatbubble.iml" filepath="$PROJECT_DIR$/chatbubble/chatbubble.iml" />
     </modules>
   </component>
