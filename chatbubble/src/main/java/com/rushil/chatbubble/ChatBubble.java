@@ -21,6 +21,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
+import java.util.regex.Pattern;
 
 /**
  * Created by Rushil on 6/20/2015.
@@ -39,9 +40,11 @@ public class ChatBubble extends View {
     private DynamicLayout dynamicLayout;
     private TextPaint textPaint;
     private DisplayMetrics display;
+    private Context context;
 
     public ChatBubble(Context context, AttributeSet attrs) {
         super(context, attrs);
+        this.context = context;
         TypedArray typedArray = context.getTheme().obtainStyledAttributes(attrs, R.styleable.ChatBubble, 0, 0);
         try {
             message = typedArray.getString(R.styleable.ChatBubble_messageText);
@@ -73,17 +76,19 @@ public class ChatBubble extends View {
 
         if (message == null)
             message = "";
-
-        if (dateTime != null)
-            message += "\n" + DateUtils.getRelativeDateTimeString(context, dateTime.getTime(), DateUtils
-                    .SECOND_IN_MILLIS, DateUtils.WEEK_IN_MILLIS, 0);
     }
 
     //method required as not to make custom view sluggish
     private void initViews() {
+        String regex = ".*([01]?[0-9]|2[0-3]):[0-5][0-9].*";
         textPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
         textPaint.setColor(textColor);
         textPaint.setTextSize(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, 16.0f, display));
+
+        if (dateTime != null)
+            message = Pattern.compile(regex).matcher(message).find() ? message : message + "\n" + DateUtils
+                    .getRelativeDateTimeString(context, dateTime.getTime(), DateUtils.SECOND_IN_MILLIS, DateUtils
+                            .WEEK_IN_MILLIS, 0);
 
         float measuredWidth = textPaint.measureText(message);
 
