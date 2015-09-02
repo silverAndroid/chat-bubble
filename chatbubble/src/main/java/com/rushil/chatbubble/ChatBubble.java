@@ -11,10 +11,16 @@ import android.graphics.RectF;
 import android.text.DynamicLayout;
 import android.text.Layout;
 import android.text.TextPaint;
+import android.text.format.DateUtils;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
 import android.util.TypedValue;
 import android.view.View;
+
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
 
 /**
  * Created by Rushil on 6/20/2015.
@@ -23,8 +29,9 @@ public class ChatBubble extends View {
 
     private final int dp5, dp7, dp18, dp20, dp35, dp70, dp80;
     private String message, sender;
+    private Date dateTime;
     private boolean isUser;
-    private int bubbleColor, textColor;
+    private int bubbleColor, textColor, accentColor;
     private Paint bubblePaint;
     private float bubbleWidth, textWidth, scale;
     private int deviceWidth;
@@ -43,6 +50,11 @@ public class ChatBubble extends View {
                     .primary_red));
             textColor = typedArray.getColor(R.styleable.ChatBubble_textColor, determineTextColor(bubbleColor));
             isUser = typedArray.getBoolean(R.styleable.ChatBubble_isUser, true);
+            if (typedArray.getString(R.styleable.ChatBubble_dateTime) != null)
+                dateTime = new SimpleDateFormat("EEEE, MMMM d, y", Locale.CANADA).parse(typedArray.getString(R.styleable
+                        .ChatBubble_dateTime));
+        } catch (ParseException e) {
+            throw new RuntimeException("Couldn't parse!", e);
         } finally {
             typedArray.recycle();
         }
@@ -57,6 +69,14 @@ public class ChatBubble extends View {
         dp35 = getPixelsFromDp(35);
         dp70 = getPixelsFromDp(70);
         dp80 = getPixelsFromDp(80);
+        accentColor = determineTextColor(bubbleColor) == Color.BLACK ? darken(bubbleColor) : lighten(bubbleColor);
+
+        if (message == null)
+            message = "";
+
+        if (dateTime != null)
+            message += "\n" + DateUtils.getRelativeDateTimeString(context, dateTime.getTime(), DateUtils
+                    .SECOND_IN_MILLIS, DateUtils.WEEK_IN_MILLIS, 0);
     }
 
     //method required as not to make custom view sluggish
@@ -64,9 +84,6 @@ public class ChatBubble extends View {
         textPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
         textPaint.setColor(textColor);
         textPaint.setTextSize(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, 16.0f, display));
-
-        if (message == null)
-            message = "";
 
         float measuredWidth = textPaint.measureText(message);
 
@@ -164,6 +181,20 @@ public class ChatBubble extends View {
         if (luminance > 0.179)
             return Color.BLACK;
         return Color.WHITE;
+    }
+
+    private int lighten(int accentColor) {
+        float[] hsv = new float[3];
+        Color.colorToHSV(accentColor, hsv);
+        hsv[2] = 1.0f - 0.8f * (1.0f - hsv[2]);
+        return Color.HSVToColor(hsv);
+    }
+
+    private int darken(int accentColor) {
+        float[] hsv = new float[3];
+        Color.colorToHSV(accentColor, hsv);
+        hsv[2] = 0.2f + 0.8f * hsv[2];
+        return Color.HSVToColor(hsv);
     }
 
     private float getLongestLineWidth() {
@@ -275,6 +306,14 @@ public class ChatBubble extends View {
     public void setUserBoolean(boolean isUser) {
         this.isUser = isUser;
         requestLayout();
+    }
+
+    public Date getDateTime() {
+        return dateTime;
+    }
+
+    public void setDateTime(Date dateTime) {
+        this.dateTime = dateTime;
     }
 
     /**

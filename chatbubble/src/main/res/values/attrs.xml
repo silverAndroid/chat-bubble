@@ -6,5 +6,6 @@
         <attr name="messageText" format="string"/>
         <attr name="senderText" format="string" />
         <attr name="isUser" format="boolean" />
+        <attr name="dateTime" format="string" />
     </declare-styleable>
 </resources>
