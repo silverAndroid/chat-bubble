@@ -7,5 +7,6 @@
         <attr name="senderText" format="string" />
         <attr name="isUser" format="boolean" />
         <attr name="dateTime" format="string" />
+        <attr name="lighterAccent" format="boolean" />
     </declare-styleable>
 </resources>
