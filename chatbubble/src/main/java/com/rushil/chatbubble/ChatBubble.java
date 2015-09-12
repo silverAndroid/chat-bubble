@@ -21,7 +21,6 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
-import java.util.regex.Pattern;
 
 /**
  * Created by Rushil on 6/20/2015.
@@ -29,7 +28,7 @@ import java.util.regex.Pattern;
 public class ChatBubble extends View {
 
     private final int dp5, dp7, dp18, dp20, dp35, dp70, dp80;
-    private String message, sender;
+    private String message, sender, date;
     private Date dateTime;
     private boolean isUser;
     private int bubbleColor, textColor, accentColor;
@@ -37,8 +36,8 @@ public class ChatBubble extends View {
     private float bubbleWidth, textWidth, scale;
     private int deviceWidth;
     private RectF bubble;
-    private DynamicLayout dynamicLayout;
-    private TextPaint textPaint;
+    private DynamicLayout messageLayout, dateLayout;
+    private TextPaint textPaint, accentPaint;
     private DisplayMetrics display;
     private Context context;
 
@@ -46,6 +45,7 @@ public class ChatBubble extends View {
         super(context, attrs);
         this.context = context;
         TypedArray typedArray = context.getTheme().obtainStyledAttributes(attrs, R.styleable.ChatBubble, 0, 0);
+        boolean lighterAccent;
         try {
             message = typedArray.getString(R.styleable.ChatBubble_messageText);
             sender = typedArray.getString(R.styleable.ChatBubble_senderText);
@@ -53,8 +53,10 @@ public class ChatBubble extends View {
                     .primary_red));
             textColor = typedArray.getColor(R.styleable.ChatBubble_textColor, determineTextColor(bubbleColor));
             isUser = typedArray.getBoolean(R.styleable.ChatBubble_isUser, true);
+            lighterAccent = typedArray.getBoolean(R.styleable.ChatBubble_lighterAccent, false);
             if (typedArray.getString(R.styleable.ChatBubble_dateTime) != null)
-                dateTime = new SimpleDateFormat("EEEE, MMMM d, y", Locale.CANADA).parse(typedArray.getString(R.styleable
+                dateTime = new SimpleDateFormat("EEEE, MMMM d, y HH:mm", Locale.CANADA).parse(typedArray.getString(R
+                        .styleable
                         .ChatBubble_dateTime));
         } catch (ParseException e) {
             throw new RuntimeException("Couldn't parse!", e);
@@ -72,7 +74,8 @@ public class ChatBubble extends View {
         dp35 = getPixelsFromDp(35);
         dp70 = getPixelsFromDp(70);
         dp80 = getPixelsFromDp(80);
-        accentColor = determineTextColor(bubbleColor) == Color.BLACK ? darken(bubbleColor) : lighten(bubbleColor);
+        accentColor = lighterAccent ? lighten(bubbleColor) : (determineTextColor(bubbleColor) == Color.BLACK ? darken
+                (bubbleColor) : lighten(bubbleColor));
 
         if (message == null)
             message = "";
@@ -80,17 +83,27 @@ public class ChatBubble extends View {
 
     //method required as not to make custom view sluggish
     private void initViews() {
-        String regex = ".*([01]?[0-9]|2[0-3]):[0-5][0-9].*";
+        float dateWidth;
         textPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
         textPaint.setColor(textColor);
-        textPaint.setTextSize(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, 16.0f, display));
+        textPaint.setTextSize(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, 15.0f, display));
+
+        accentPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
+        accentPaint.setColor(accentColor);
+        accentPaint.setTextSize(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, 13.0f, display));
 
         if (dateTime != null)
-            message = Pattern.compile(regex).matcher(message).find() ? message : message + "\n" + DateUtils
-                    .getRelativeDateTimeString(context, dateTime.getTime(), DateUtils.SECOND_IN_MILLIS, DateUtils
-                            .WEEK_IN_MILLIS, 0);
+            date = (String) DateUtils.getRelativeDateTimeString(context, dateTime.getTime(), DateUtils.SECOND_IN_MILLIS,
+                    DateUtils.WEEK_IN_MILLIS, 0);
 
-        float measuredWidth = textPaint.measureText(message);
+        if (date != null)
+            dateWidth = accentPaint.measureText(date);
+        else
+            dateWidth = -1;
+
+        float messageWidth = textPaint.measureText(message);
+
+        float measuredWidth = dateWidth == -1 ? messageWidth : (messageWidth > dateWidth ? messageWidth : dateWidth);
 
         if (isUser)
             if (measuredWidth < deviceWidth - dp70)
@@ -108,36 +121,33 @@ public class ChatBubble extends View {
         bubblePaint.setColor(bubbleColor);
         bubblePaint.setStyle(Paint.Style.FILL);
 
-        dynamicLayout = new DynamicLayout(message, textPaint, (int) TypedValue.applyDimension(TypedValue
+        messageLayout = new DynamicLayout(message, textPaint, (int) TypedValue.applyDimension(TypedValue
                 .COMPLEX_UNIT_PX, textWidth, display), Layout.Alignment.ALIGN_NORMAL, 1.0f, 0.0f, false);
+
+        dateLayout = new DynamicLayout(date, accentPaint, (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_PX,
+                textWidth, display), Layout.Alignment.ALIGN_NORMAL, 1.0f, 0.0f, false);
 
         // Added 20dp to "textWidth" to allow for a 10dp padding on either side of the text
         if (isUser) {
-            if (message.equals("")) {
+            if (message.equals(""))
                 bubbleWidth = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_PX, 100.0f, display);
-                bubble = new RectF(dp20, 0.0f, TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_PX, bubbleWidth,
-                        display), TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_PX, dynamicLayout.getHeight() +
-                        dp20, display));
-            } else {
+            else
                 bubbleWidth = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_PX, getLongestLineWidth() + dp35,
                         display);
-                bubble = new RectF(dp20, 0.0f, TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_PX, bubbleWidth,
-                        display), TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_PX, dynamicLayout.getHeight() +
-                        dp20, display));
-            }
+
+            bubble = new RectF(dp20, 0.0f, TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_PX, bubbleWidth,
+                    display), TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_PX, messageLayout.getHeight() +
+                    dateLayout.getHeight() + dp20, display));
         } else {
-            if (message.equals("")) {
+            if (message.equals(""))
                 bubbleWidth = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_PX, 100.0f, display);
-                bubble = new RectF(0.0f, 0.0f, TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_PX, bubbleWidth,
-                        display), TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_PX, dynamicLayout.getHeight() + dp20,
-                        display));
-            } else {
+            else
                 bubbleWidth = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_PX, getLongestLineWidth() + dp20,
                         display);
-                bubble = new RectF(0.0f, 0.0f, TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_PX, bubbleWidth,
-                        display), TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_PX, dynamicLayout.getHeight() +
-                        dp20, display));
-            }
+
+            bubble = new RectF(0.0f, 0.0f, TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_PX, bubbleWidth,
+                    display), TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_PX, messageLayout.getHeight() +
+                    dateLayout.getHeight() + dp20, display));
         }
     }
 
@@ -177,44 +187,24 @@ public class ChatBubble extends View {
         }
     }
 
-    /*
-     * Formula found at http://stackoverflow.com/a/3943023/2038087
-     */
-    private int determineTextColor(int bubbleColor) {
-        double r = bubbleColor & 255, g = (bubbleColor >> 8) & 255, b = (bubbleColor >> 16) & 255;
-        double luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-        if (luminance > 0.179)
-            return Color.BLACK;
-        return Color.WHITE;
-    }
-
-    private int lighten(int accentColor) {
-        float[] hsv = new float[3];
-        Color.colorToHSV(accentColor, hsv);
-        hsv[2] = 1.0f - 0.8f * (1.0f - hsv[2]);
-        return Color.HSVToColor(hsv);
-    }
-
-    private int darken(int accentColor) {
-        float[] hsv = new float[3];
-        Color.colorToHSV(accentColor, hsv);
-        hsv[2] = 0.2f + 0.8f * hsv[2];
-        return Color.HSVToColor(hsv);
-    }
-
     private float getLongestLineWidth() {
         float longestWidth = 0;
 
-        for (int i = 0; i < dynamicLayout.getLineCount(); i++) {
-            float lineWidth = dynamicLayout.getLineMax(i);
+        for (int i = 0; i < messageLayout.getLineCount(); i++) {
+            float lineWidth = messageLayout.getLineMax(i);
+            if (longestWidth < lineWidth)
+                longestWidth = lineWidth;
+        }
+        for (int i = 0; i < dateLayout.getLineCount(); i++) {
+            float lineWidth = dateLayout.getLineMax(i);
             if (longestWidth < lineWidth)
                 longestWidth = lineWidth;
         }
         return longestWidth;
     }
 
-    private void drawMultilineText(Canvas canvas) {
-        dynamicLayout = new DynamicLayout(message, textPaint, (int) TypedValue.applyDimension(TypedValue
+    private void drawMessage(Canvas canvas) {
+        messageLayout = new DynamicLayout(message, textPaint, (int) TypedValue.applyDimension(TypedValue
                 .COMPLEX_UNIT_PX, textWidth, display), Layout.Alignment.ALIGN_NORMAL, 1.0f, 0.0f, false);
         canvas.save();
         if (isUser)
@@ -223,7 +213,21 @@ public class ChatBubble extends View {
         else
             canvas.translate(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 10.0f, display), TypedValue
                     .applyDimension(TypedValue.COMPLEX_UNIT_DIP, 10.0f, display));
-        dynamicLayout.draw(canvas);
+        messageLayout.draw(canvas);
+        canvas.restore();
+    }
+
+    private void drawDate(Canvas canvas) {
+        dateLayout = new DynamicLayout(date, accentPaint, (int) TypedValue.applyDimension(TypedValue
+                .COMPLEX_UNIT_PX, textWidth, display), Layout.Alignment.ALIGN_NORMAL, 1.0f, 0.0f, false);
+        canvas.save();
+        if (isUser)
+            canvas.translate(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 27.5f, display), TypedValue
+                    .applyDimension(TypedValue.COMPLEX_UNIT_PX, messageLayout.getHeight() + dp5 + dp7, display));
+        else
+            canvas.translate(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 10.0f, display), TypedValue
+                    .applyDimension(TypedValue.COMPLEX_UNIT_PX, messageLayout.getHeight() + dp5 + dp7, display));
+        dateLayout.draw(canvas);
         canvas.restore();
     }
 
@@ -250,7 +254,8 @@ public class ChatBubble extends View {
             canvas.drawRect(bubbleWidth - dp20, 0, bubbleWidth, dp5, bubblePaint);
             canvas.drawRect(bubbleWidth - dp7, 0, bubbleWidth, dp18, bubblePaint);
         }
-        drawMultilineText(canvas);
+        drawMessage(canvas);
+        drawDate(canvas);
         drawTriangle(canvas);
     }
 
@@ -260,12 +265,12 @@ public class ChatBubble extends View {
         initViews();
         if (isUser)
             setMeasuredDimension((int) (TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_PX, bubbleWidth, display)),
-                    (int) (TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_PX, dynamicLayout.getHeight() + dp20,
-                            display)));
+                    (int) (TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_PX, messageLayout.getHeight() +
+                            dateLayout.getHeight() + dp20, display)));
         else
             setMeasuredDimension((int) (TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_PX, bubbleWidth + dp20,
-                    display)), (int) (TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_PX, dynamicLayout.getHeight()
-                    + dp20, display)));
+                    display)), (int) (TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_PX, messageLayout.getHeight()
+                    + dateLayout.getHeight() + dp20, display)));
     }
 
     public String getMessage() {
@@ -329,5 +334,32 @@ public class ChatBubble extends View {
      */
     private int getPixelsFromDp(int dp) {
         return (int) (scale * dp + 0.5f);
+    }
+
+    /*
+     * Formula found at http://stackoverflow.com/a/3943023/2038087
+     */
+    private int determineTextColor(int bubbleColor) {
+        double r = bubbleColor & 255, g = (bubbleColor >> 8) & 255, b = (bubbleColor >> 16) & 255;
+        double luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+        if (luminance > 0.179)
+            return Color.BLACK;
+        return Color.WHITE;
+    }
+
+    private int lighten(int accentColor) {
+        int red = (int) ((Color.red(accentColor) * (1 - 0.7) / 255 + 0.7) * 255);
+        int green = (int) ((Color.green(accentColor) * (1 - 0.7) / 255 + 0.7) * 255);
+        int blue = (int) ((Color.blue(accentColor) * (1 - 0.7) / 255 + 0.7) * 255);
+        return Color.argb(Color.alpha(accentColor), red, green, blue);
+    }
+
+    private int darken(int accentColor) {
+        int a = Color.alpha(accentColor);
+        int r = Color.red(accentColor);
+        int g = Color.green(accentColor);
+        int b = Color.blue(accentColor);
+
+        return Color.argb(a, Math.max((int) (r * 0.7), 0), Math.max((int) (g * 0.7), 0), Math.max((int) (b * 0.7), 0));
     }
 }
